@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng, toBlob } from 'html-to-image';
 import { 
   GraduationCap, 
   Briefcase, 
@@ -268,34 +268,42 @@ function App() {
     if (!shareCardRef.current || isSnapshotting) return;
     setIsSnapshotting(true);
     try {
-      await new Promise(r => setTimeout(r, 100));
-      const canvas = await html2canvas(shareCardRef.current, {
+      await new Promise(r => setTimeout(r, 100)); // allow paints
+      const options = {
         backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+        pixelRatio: 2,
+        cacheBust: true,
+      };
+
       if (action === 'download') {
+        const dataUrl = await toPng(shareCardRef.current, options);
         const link = document.createElement('a');
         link.download = `college-roi-audit-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.href = dataUrl;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         setSnapshotDone('downloaded');
       } else if (action === 'copy') {
-        canvas.toBlob(async (blob) => {
-          try {
+        try {
+          const blob = await toBlob(shareCardRef.current, options);
+          if (blob) {
             await navigator.clipboard.write([
               new ClipboardItem({ 'image/png': blob })
             ]);
             setSnapshotDone('copied');
-          } catch {
-            const link = document.createElement('a');
-            link.download = `college-roi-audit-${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            setSnapshotDone('downloaded');
           }
-        }, 'image/png');
+        } catch (copyErr) {
+          console.warn('Clipboard write failed, falling back to download', copyErr);
+          const dataUrl = await toPng(shareCardRef.current, options);
+          const link = document.createElement('a');
+          link.download = `college-roi-audit-${Date.now()}.png`;
+          link.href = dataUrl;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setSnapshotDone('downloaded');
+        }
       }
       setTimeout(() => setSnapshotDone(''), 2500);
     } catch (err) {
