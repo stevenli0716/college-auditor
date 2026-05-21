@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import html2canvas from 'html2canvas';
 import { 
   GraduationCap, 
   Briefcase, 
@@ -14,8 +15,144 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Share2,
+  Mail,
+  Check,
+  Copy,
+  Download,
+  Camera
 } from 'lucide-react';
+
+const SHARE_URL = 'https://college-auditor.vercel.app/';
+const SHARE_TITLE = 'College ROI Auditor';
+const SHARE_TEXT = 'Compare the financial outcomes of college education versus early workforce entry and investing.';
+
+function ShareEngine() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = SHARE_URL;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const openShare = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
+    setIsOpen(false);
+  };
+
+  const platforms = [
+    {
+      name: 'X',
+      color: 'bg-black',
+      action: () => openShare(`https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(SHARE_TEXT)}`),
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    },
+    {
+      name: 'Facebook',
+      color: 'bg-[#1877F2]',
+      action: () => openShare(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`),
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+    },
+    {
+      name: 'LinkedIn',
+      color: 'bg-[#0A66C2]',
+      action: () => openShare(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SHARE_URL)}`),
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    },
+    {
+      name: 'Reddit',
+      color: 'bg-[#FF4500]',
+      action: () => openShare(`https://reddit.com/submit?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TITLE)}`),
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+    },
+    {
+      name: 'WhatsApp',
+      color: 'bg-[#25D366]',
+      action: () => openShare(`https://api.whatsapp.com/send?text=${encodeURIComponent(SHARE_TEXT + ' ' + SHARE_URL)}`),
+      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    },
+    {
+      name: 'Email',
+      color: 'bg-slate-600',
+      action: () => { window.location.href = `mailto:?subject=${encodeURIComponent(SHARE_TITLE)}&body=${encodeURIComponent(SHARE_TEXT + '\n\n' + SHARE_URL)}`; setIsOpen(false); },
+      icon: <Mail size={14} />
+    },
+  ];
+
+  return (
+    <>
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-[60]"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Share Panel */}
+      <div className={`fixed bottom-36 md:bottom-24 right-4 md:right-6 z-[70] transition-all duration-300 ease-out ${
+        isOpen ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+      }`}>
+        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 p-5 w-[272px]">
+          <div className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-400 mb-4">Share this tool</div>
+          <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+            {platforms.map((p) => (
+              <button
+                key={p.name}
+                onClick={p.action}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+              >
+                <div className={`w-11 h-11 rounded-full ${p.color} flex items-center justify-center text-white shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-200`}>
+                  {p.icon}
+                </div>
+                <span className="text-[9px] font-mono font-bold text-slate-400 group-hover:text-slate-700 transition-colors">{p.name}</span>
+              </button>
+            ))}
+            {/* Copy Link */}
+            <button
+              onClick={handleCopy}
+              className="flex flex-col items-center gap-1.5 cursor-pointer group"
+            >
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-200 ${
+                copied ? 'bg-emerald-500' : 'bg-indigo-500'
+              }`}>
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+              </div>
+              <span className="text-[9px] font-mono font-bold text-slate-400 group-hover:text-slate-700 transition-colors">
+                {copied ? 'Copied!' : 'Copy Link'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Action Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`fixed bottom-20 md:bottom-8 right-4 md:right-6 z-[70] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 cursor-pointer ${
+          isOpen
+            ? 'bg-slate-800 shadow-xl'
+            : 'bg-gradient-to-tr from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 hover:shadow-xl hover:scale-105'
+        }`}
+        aria-label="Share"
+      >
+        {isOpen ? <X size={20} className="text-white" /> : <Share2 size={20} className="text-white" />}
+      </button>
+    </>
+  );
+}
 
 const PRESETS = [
   {
@@ -122,6 +259,51 @@ function App() {
   // Interactive Chart States
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const svgRef = useRef(null);
+  const shareCardRef = useRef(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isSnapshotting, setIsSnapshotting] = useState(false);
+  const [snapshotDone, setSnapshotDone] = useState('');
+
+  const handleShareCapture = useCallback(async (action) => {
+    if (!shareCardRef.current || isSnapshotting) return;
+    setIsSnapshotting(true);
+    try {
+      await new Promise(r => setTimeout(r, 100));
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      if (action === 'download') {
+        const link = document.createElement('a');
+        link.download = `college-roi-audit-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        setSnapshotDone('downloaded');
+      } else if (action === 'copy') {
+        canvas.toBlob(async (blob) => {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            setSnapshotDone('copied');
+          } catch {
+            const link = document.createElement('a');
+            link.download = `college-roi-audit-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            setSnapshotDone('downloaded');
+          }
+        }, 'image/png');
+      }
+      setTimeout(() => setSnapshotDone(''), 2500);
+    } catch (err) {
+      console.error('Chart snapshot failed:', err);
+    } finally {
+      setIsSnapshotting(false);
+    }
+  }, [isSnapshotting]);
 
   const handleApplyPreset = (preset) => {
     setTuition(preset.tuition);
@@ -1107,9 +1289,17 @@ function App() {
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">Hover / drag over the chart to trace dynamic wealth balances by age.</p>
               </div>
-              <div className="flex items-center gap-4 text-xs font-mono">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shadow-sm"></span> Workforce</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block shadow-sm"></span> College</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shadow-sm"></span> Workforce</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block shadow-sm"></span> College</span>
+                </div>
+                <button
+                  onClick={() => { setHoveredIndex(null); setShowShareModal(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer border bg-slate-50 text-slate-500 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                >
+                  <Camera size={12} /> Share Chart
+                </button>
               </div>
             </div>
 
@@ -1717,6 +1907,170 @@ function App() {
             }`}>
               {formatAbbreviation(Math.abs(delta))} {delta >= 0 ? 'Workforce' : 'College'}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Share Engine */}
+      <ShareEngine />
+
+      {/* Share Chart Lightbox Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center sm:p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowShareModal(false); setSnapshotDone(''); }} />
+
+          {/* Modal Content — sheet-style on mobile, centered card on desktop */}
+          <div className="relative z-10 bg-slate-100 rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto hide-scrollbar">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-t-2xl flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold font-mono text-slate-900 flex items-center gap-2"><Camera size={14} className="text-indigo-600" /> Share Your Analysis</h3>
+                <p className="text-[9px] sm:text-[10px] text-slate-400 font-mono mt-0.5">Preview your shareable chart card below</p>
+              </div>
+              <button onClick={() => { setShowShareModal(false); setSnapshotDone(''); }} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Share Card Preview — this is what gets captured */}
+            <div className="p-3 sm:p-6">
+              <div ref={shareCardRef} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Card Header */}
+                <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center font-mono font-bold text-white text-[10px] sm:text-xs">S</div>
+                      <div>
+                        <div className="text-[7px] sm:text-[8px] uppercase tracking-widest text-slate-400 font-extrabold font-mono">FINANCIAL FORECAST</div>
+                        <div className="text-[10px] sm:text-xs font-bold font-mono text-slate-800">COLLEGE ROI AUDITOR</div>
+                      </div>
+                    </div>
+                    <span className="text-[8px] sm:text-[9px] font-mono text-slate-400 font-medium">college-auditor.vercel.app</span>
+                  </div>
+                </div>
+
+                {/* Modeler Inputs Grid */}
+                <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/50 border-b border-slate-100">
+                  <div className="text-[8px] sm:text-[9px] uppercase font-extrabold text-slate-400 font-mono tracking-widest mb-2 sm:mb-3">Modeler Inputs</div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
+                    <div className="bg-white rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-100">
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Tuition/yr</div>
+                      <div className="text-xs sm:text-sm font-black font-mono text-purple-600">{formatAbbreviation(tuition)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-100">
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">HS Wage</div>
+                      <div className="text-xs sm:text-sm font-black font-mono text-cyan-600">{formatAbbreviation(hsWage)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-100">
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">College Wage</div>
+                      <div className="text-xs sm:text-sm font-black font-mono text-purple-600">{formatAbbreviation(collegeWage)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-100">
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Market Return</div>
+                      <div className="text-xs sm:text-sm font-black font-mono text-indigo-600">{rate}%</div>
+                    </div>
+                    <div className="bg-white rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-100">
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Wage Growth</div>
+                      <div className="text-xs sm:text-sm font-black font-mono text-indigo-600">{wageGrowth}%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chart */}
+                <div className="px-3 sm:px-6 py-3 sm:py-4">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3 flex-wrap gap-1">
+                    <span className="text-[9px] sm:text-[10px] uppercase font-extrabold text-slate-400 font-mono tracking-widest">Compounding (Age 18–50)</span>
+                    <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px] font-mono">
+                      <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-cyan-500 inline-block"></span> Workforce</span>
+                      <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500 inline-block"></span> College</span>
+                    </div>
+                  </div>
+                  <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full">
+                    <defs>
+                      <linearGradient id="shareAreaA" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.08" />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
+                      </linearGradient>
+                      <linearGradient id="shareAreaB" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.08" />
+                        <stop offset="100%" stopColor="#a855f7" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    {gridLines.map((line, idx) => (
+                      <g key={idx}>
+                        <line x1={paddingLeft} y1={yOf(line)} x2={chartWidth - paddingRight} y2={yOf(line)} stroke="#e2e8f0" strokeWidth="1" />
+                        <text x={paddingLeft - 8} y={yOf(line) + 4} textAnchor="end" className="text-[10px] fill-slate-400 font-mono">{formatAbbreviation(line)}</text>
+                      </g>
+                    ))}
+                    <line x1={paddingLeft} y1={chartHeight - paddingBottom} x2={chartWidth - paddingRight} y2={chartHeight - paddingBottom} stroke="#e2e8f0" strokeWidth="1" />
+                    {data.filter((_, i) => i % 4 === 0).map((d) => (
+                      <text key={d.age} x={xOf(d.age)} y={chartHeight - paddingBottom + 16} textAnchor="middle" className="text-[10px] fill-slate-400 font-mono">{d.age}</text>
+                    ))}
+                    <path d={areaAD} fill="url(#shareAreaA)" />
+                    <path d={areaBD} fill="url(#shareAreaB)" />
+                    <path d={pathBD} fill="none" stroke="#a855f7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={pathAD} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+
+                {/* Results Footer */}
+                <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/50 border-t border-slate-100">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                    <div>
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Workforce at 50</div>
+                      <div className="text-sm sm:text-base font-black font-mono text-cyan-600">{formatAbbreviation(finalA)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">College at 50</div>
+                      <div className="text-sm sm:text-base font-black font-mono text-purple-600">{formatAbbreviation(finalB)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Net Delta</div>
+                      <div className={`text-sm sm:text-base font-black font-mono ${delta >= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {formatAbbreviation(Math.abs(delta))} {delta >= 0 ? 'Workforce' : 'College'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Break-Even</div>
+                      <div className="text-sm sm:text-base font-black font-mono text-slate-800">
+                        {breakEvenAge ? `Age ${breakEvenAge}` : 'Never'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="sticky bottom-0 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 sm:px-6 py-3 sm:py-4 rounded-b-2xl flex flex-col gap-3">
+              {snapshotDone && (
+                <div className="flex items-center justify-center gap-2 text-xs font-bold font-mono text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                  <Check size={14} />
+                  {snapshotDone === 'copied' ? 'Image copied to clipboard!' : 'Image downloaded!'}
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-3 sm:justify-end">
+                <button
+                  onClick={() => handleShareCapture('copy')}
+                  disabled={isSnapshotting}
+                  className="flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl text-xs font-bold font-mono uppercase tracking-wider border border-slate-200 bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all duration-200 cursor-pointer disabled:opacity-50"
+                >
+                  <Copy size={14} /> Copy Image
+                </button>
+                <button
+                  onClick={() => handleShareCapture('download')}
+                  disabled={isSnapshotting}
+                  className="flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl text-xs font-bold font-mono uppercase tracking-wider bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-200 cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  {isSnapshotting ? (
+                    <><svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg> Capturing...</>
+                  ) : (
+                    <><Download size={14} /> Download PNG</>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
