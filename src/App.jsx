@@ -21,7 +21,8 @@ import {
   Check,
   Copy,
   Download,
-  Camera
+  Camera,
+  Rocket
 } from 'lucide-react';
 
 const SHARE_URL = 'https://college-auditor.vercel.app/';
@@ -202,6 +203,66 @@ const PRESETS = [
   }
 ];
 
+const CAREER_PATHS = [
+  {
+    name: "Investment Banker",
+    tuition: 85000,
+    hsWage: 40000,
+    rate: 10,
+    collegeWage: 120000,
+    wageGrowth: 4,
+    jumps: [
+      { age: 24, bump: 60 },
+      { age: 28, bump: 80 },
+      { age: 35, bump: 100 },
+    ],
+    description: "High Ivy League tuition offset by extreme Wall Street bonuses and aggressive early-career title bumps.",
+    badge: "Wall Street"
+  },
+  {
+    name: "Tech Executive",
+    tuition: 40000,
+    hsWage: 40000,
+    rate: 10,
+    collegeWage: 80000,
+    wageGrowth: 3,
+    jumps: [
+      { age: 26, bump: 30 },
+      { age: 30, bump: 40 },
+      { age: 35, bump: 50 },
+    ],
+    description: "Software engineering path. Major stock grants and promotions at ages 26, 30, and 35.",
+    badge: "Big Tech"
+  },
+  {
+    name: "Medical Attending",
+    tuition: 60000,
+    hsWage: 40000,
+    rate: 10,
+    collegeWage: 60000,
+    wageGrowth: 2,
+    jumps: [
+      { age: 30, bump: 300 },
+      { age: 40, bump: 50 },
+    ],
+    description: "Low wages during residency, massive 300% bump at age 30 (Attending), partner at 40.",
+    badge: "Medicine"
+  },
+  {
+    name: "Big Law Partner",
+    tuition: 65000,
+    hsWage: 40000,
+    rate: 10,
+    collegeWage: 120000,
+    wageGrowth: 5,
+    jumps: [
+      { age: 32, bump: 150 }
+    ],
+    description: "Grinding as an associate with a massive equity/partner bump at age 32.",
+    badge: "Law"
+  }
+];
+
 function App() {
   // Navigation / Routing State
   const [path, setPath] = useState(window.location.pathname);
@@ -224,6 +285,7 @@ function App() {
   const [rate, setRate] = useState(10);
   const [collegeWage, setCollegeWage] = useState(80000);
   const [wageGrowth, setWageGrowth] = useState(3);
+  const [jumps, setJumps] = useState([]);
   const [activePreset, setActivePreset] = useState("Fed Average (2026)");
   
   // Navigation & Carousel states
@@ -319,6 +381,7 @@ function App() {
     setRate(preset.rate);
     setCollegeWage(preset.collegeWage);
     setWageGrowth(preset.wageGrowth || 3);
+    setJumps(preset.jumps || []);
     setActivePreset(preset.name);
   };
 
@@ -362,7 +425,12 @@ function App() {
       }
       
       if (t > 5) {
-        currentCollegeWage *= (1 + g);
+        const jump = jumps.find(j => j.age === age);
+        if (jump && jump.bump > 0) {
+          currentCollegeWage *= (1 + (jump.bump / 100));
+        } else {
+          currentCollegeWage *= (1 + g);
+        }
       }
 
       if (t <= 4) {
@@ -418,7 +486,7 @@ function App() {
       totalInvestedA,
       totalInvestedB
     };
-  }, [tuition, hsWage, rate, collegeWage, wageGrowth]);
+  }, [tuition, hsWage, rate, collegeWage, wageGrowth, jumps]);
 
   const {
     data,
@@ -433,6 +501,19 @@ function App() {
     totalInvestedA,
     totalInvestedB
   } = results;
+
+  const manualJump = jumps.length === 1 ? jumps[0] : { age: 30, bump: 0 };
+  const promotionBump = jumps.length > 1 ? 0 : manualJump.bump;
+  const promotionAge = jumps.length > 1 ? 30 : manualJump.age;
+
+  const handleManualBumpChange = (val) => {
+    setJumps([{ age: promotionAge, bump: val }]);
+    setActivePreset("");
+  };
+  const handleManualAgeChange = (val) => {
+    setJumps([{ age: val, bump: promotionBump }]);
+    setActivePreset("");
+  };
 
   // Chart Coordinates mapping
   const chartWidth = 600;
@@ -1191,6 +1272,13 @@ function App() {
             <p className="mt-3 text-base sm:text-lg text-slate-500 max-w-3xl leading-relaxed font-medium">
               Compare the long-term wealth projections of entering the workforce early versus investing in a college degree. Explore your path and find your own balance.
             </p>
+            <div className="mt-4 p-3 bg-rose-50/80 border border-rose-100 rounded-lg max-w-3xl inline-flex items-start gap-2 text-left">
+              <AlertTriangle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-rose-700 leading-relaxed font-medium">
+                <strong className="font-extrabold uppercase tracking-wider text-[10px] block mb-0.5">Mathematical Disclaimer</strong> 
+                This model demonstrates gross compounding in a frictionless environment. It intentionally <strong>excludes</strong> marginal taxes, high-cost-of-living (HCOL) geographic traps, lifestyle creep, and the monthly cash-flow drain of servicing student debt—all of which heavily dilute the actual college premium in reality.
+              </p>
+            </div>
           </div>
 
           {/* Preset Carousel Block */}
@@ -1241,6 +1329,55 @@ function App() {
                       <p className={`text-xs leading-relaxed flex-grow ${
                         isSelected ? 'text-indigo-100' : 'text-slate-500'
                       }`}>{preset.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Career Path Block */}
+          <div className="relative bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm mt-4">
+            <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+              <span className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold font-mono flex items-center gap-1.5">
+                <Rocket size={13} className="text-rose-500" /> Best-Case Scenarios
+              </span>
+            </div>
+            
+            <div className="flex overflow-x-auto hide-scrollbar gap-3 pb-2 -mx-1 px-1">
+              {CAREER_PATHS.map((preset) => {
+                const isSelected = activePreset === preset.name;
+                return (
+                  <div key={preset.name} className="w-[85%] sm:w-[280px] shrink-0 snap-center">
+                    <div 
+                      onClick={() => handleApplyPreset(preset)}
+                      className={`text-left p-4 rounded-xl transition-all duration-200 cursor-pointer border h-full flex flex-col ${
+                        isSelected 
+                          ? 'bg-rose-500 border-rose-500 text-white shadow-md transform scale-[1.02]' 
+                          : 'bg-rose-50 border-rose-100 hover:border-rose-300 hover:bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-sm font-bold font-mono ${isSelected ? 'text-white' : 'text-slate-900'}`}>{preset.name}</span>
+                        <span className={`text-[9px] uppercase px-2 py-0.5 rounded font-mono tracking-wide whitespace-nowrap ${
+                          isSelected ? 'bg-white/20 text-white font-black' : 'bg-rose-200/80 text-rose-700 font-bold'
+                        }`}>
+                          {preset.badge}
+                        </span>
+                      </div>
+                      <p className={`text-xs leading-relaxed flex-grow mb-3 ${
+                        isSelected ? 'text-rose-100' : 'text-slate-500'
+                      }`}>{preset.description}</p>
+                      
+                      <div className="flex flex-wrap gap-1 mt-auto">
+                        {preset.jumps.map((j, i) => (
+                          <span key={i} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            isSelected ? 'bg-black/20 text-white' : 'bg-rose-200/50 text-rose-700'
+                          }`}>
+                            @{j.age}: +{j.bump}%
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1719,6 +1856,94 @@ function App() {
                     <span>$200k/yr</span>
                   </div>
                 </div>
+
+                {/* ADVANCED: Promotion Windfall (College Path) */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-5">
+                    <Rocket size={64} />
+                  </div>
+                  <h4 className="text-[10px] uppercase tracking-widest font-extrabold font-mono text-slate-500">Advanced: College Windfall</h4>
+                  
+                  {jumps.length > 1 ? (
+                    <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-xs text-indigo-700 font-mono font-bold text-center mt-2">
+                      Multiple career jumps applied by preset. Clear preset to manually adjust.
+                    </div>
+                  ) : (
+                    <>
+                      {/* Slider 6: Promotion Bump */}
+                      <div className="space-y-2 relative z-10">
+                        <div className="flex justify-between items-center">
+                          <label htmlFor="promotion-bump-slider" className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <Rocket size={16} className="text-indigo-600" /> Mid-Career Salary Jump
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              id="promotion-bump-input"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="5"
+                              value={promotionBump}
+                              onChange={(e) => handleManualBumpChange(Math.max(0, Math.min(100, Number(e.target.value))))}
+                              className="w-16 px-2 py-1 text-xs text-right bg-white border border-slate-200 rounded font-mono focus:outline-none focus:border-indigo-500 font-bold text-slate-900"
+                            />
+                            <span className="text-xs text-slate-400 font-mono font-bold">%</span>
+                          </div>
+                        </div>
+                        <input
+                          id="promotion-bump-slider"
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={promotionBump}
+                          onChange={(e) => handleManualBumpChange(Number(e.target.value))}
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-500 font-mono font-bold">
+                          <span>0%</span>
+                          <span>Applies once at specific age</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+
+                      {/* Slider 7: Promotion Age */}
+                      <div className={`space-y-2 relative z-10 transition-opacity duration-300 ${promotionBump === 0 ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                        <div className="flex justify-between items-center">
+                          <label htmlFor="promotion-age-slider" className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <TrendingUp size={16} className="text-slate-400" /> Age of Promotion
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-slate-400 font-mono font-bold">Age</span>
+                            <input
+                              id="promotion-age-input"
+                              type="number"
+                              min="24"
+                              max="45"
+                              step="1"
+                              value={promotionAge}
+                              onChange={(e) => handleManualAgeChange(Math.max(24, Math.min(45, Number(e.target.value))))}
+                              className="w-16 px-2 py-1 text-xs text-right bg-white border border-slate-200 rounded font-mono focus:outline-none focus:border-indigo-500 font-bold text-slate-900"
+                            />
+                          </div>
+                        </div>
+                        <input
+                          id="promotion-age-slider"
+                          type="range"
+                          min="24"
+                          max="45"
+                          step="1"
+                          value={promotionAge}
+                          onChange={(e) => handleManualAgeChange(Number(e.target.value))}
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-500 font-mono font-bold">
+                          <span>Age 24</span>
+                          <span>College Path Only</span>
+                          <span>Age 45</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Calculations Breakdown Sub-Panel */}
@@ -1884,9 +2109,16 @@ function App() {
 
             </div>
 
-            <div className="mt-8 text-center text-xs text-slate-500 font-mono font-medium">
-              <p>Data Model configured with 2026 Fed Baseline assumptions. Projections do not guarantee future stock market performances.</p>
-              <p className="mt-1">Built with React, Vite & Tailwind CSS. Tiny bundle footprint, custom SVG charting.</p>
+            <div className="mt-12 text-center text-[10px] sm:text-xs text-slate-400 font-mono font-medium max-w-4xl mx-auto space-y-2 px-4">
+              <p>
+                * Default baseline wages ($40k entry, $80k graduate) and compounding rules are modeled using 2024-2026 macro-averages from the U.S. Bureau of Labor Statistics (BLS) and National Center for Education Statistics (NCES).
+              </p>
+              <p>
+                * Market return default (10%) reflects the historical annualized average return of the S&P 500 index. Projections do not guarantee future stock market performances.
+              </p>
+              <p className="pt-4 border-t border-slate-200 mt-4">
+                Built with React, Vite & Tailwind CSS. Designed for rapid macro-economic analysis.
+              </p>
             </div>
           </footer>
 
@@ -1961,7 +2193,7 @@ function App() {
                 {/* Modeler Inputs Grid */}
                 <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/50 border-b border-slate-100">
                   <div className="text-[8px] sm:text-[9px] uppercase font-extrabold text-slate-400 font-mono tracking-widest mb-2 sm:mb-3">Modeler Inputs</div>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
+                  <div className={`grid grid-cols-3 gap-2 sm:gap-3 ${jumps.length > 0 ? 'sm:grid-cols-6' : 'sm:grid-cols-5'}`}>
                     <div className="bg-white rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-100">
                       <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Tuition/yr</div>
                       <div className="text-xs sm:text-sm font-black font-mono text-purple-600">{formatAbbreviation(tuition)}</div>
@@ -1982,6 +2214,14 @@ function App() {
                       <div className="text-[7px] sm:text-[8px] uppercase font-bold text-slate-400 font-mono">Wage Growth</div>
                       <div className="text-xs sm:text-sm font-black font-mono text-indigo-600">{wageGrowth}%</div>
                     </div>
+                    {jumps.length > 0 && (
+                      <div className="bg-indigo-50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-indigo-100 col-span-3 sm:col-span-1">
+                        <div className="text-[7px] sm:text-[8px] uppercase font-bold text-indigo-400 font-mono">Milestones</div>
+                        <div className="text-xs sm:text-sm font-black font-mono text-indigo-600 truncate">
+                          {jumps.filter(j => j.bump > 0).map(j => `@${j.age}:+${j.bump}%`).join(', ')}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
