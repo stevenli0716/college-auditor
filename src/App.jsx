@@ -1338,9 +1338,12 @@ function App() {
 
           {/* Career Path Block */}
           <div className="relative bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm mt-4">
-            <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3 border-b border-slate-100 pb-3">
               <span className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold font-mono flex items-center gap-1.5">
                 <Rocket size={13} className="text-rose-500" /> Best-Case Scenarios
+              </span>
+              <span className="text-[9px] text-slate-400 font-mono italic">
+                *AI-modeled pay raise curves (precise historical/demographic path data unavailable due to complexity)
               </span>
             </div>
             
