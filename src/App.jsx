@@ -2112,6 +2112,21 @@ function App() {
 
             </div>
 
+            {/* Read the Policy CTA */}
+            <div className="mt-12 mb-4 text-center">
+              <button
+                onClick={() => {
+                  navigate('/the-macro-fix');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-bold font-mono text-sm transition-all duration-200 shadow-lg cursor-pointer hover:-translate-y-1"
+              >
+                <span>Read The Policy Fix</span>
+                <ArrowRight size={16} />
+              </button>
+              <p className="mt-4 text-xs text-slate-500 font-medium">Learn how we can replace federal student loans with sovereign equity.</p>
+            </div>
+
             <div className="mt-12 text-center text-[10px] sm:text-xs text-slate-400 font-mono font-medium max-w-4xl mx-auto space-y-2 px-4">
               <p>
                 * Default baseline wages ($40k entry, $80k graduate) and compounding rules are modeled using 2024-2026 macro-averages from the U.S. Bureau of Labor Statistics (BLS) and National Center for Education Statistics (NCES).
